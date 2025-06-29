@@ -19,6 +19,10 @@ groups.auth.init(app, db)
 groups.defaults.init(app, db)
 groups.recipes.init(app, db)
 
+# if __name__ == "__main__":
+#     print("Runing...")
+#     app.run(debug=True, port=4950)
 if __name__ == "__main__":
-    print("Runing...")
-    app.run(debug=True, port=4950)
+    from os import environ
+    port = int(environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
