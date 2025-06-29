@@ -5,12 +5,14 @@ import groups.defaults
 import groups.recipes
 from pymongo import MongoClient
 import json
+import os
 
 app = Flask("Google Login App")
 CORS(app, supports_credentials=True, expose_headers="Authorization")
 
 # Database
-mongoUrl = json.load(open("client_secret.json"))["data"]["mongo"]
+# mongoUrl = json.load(open("client_secret.json"))["data"]["mongo"]
+mongoUrl = os.environ.get("MONGO_URI")
 dbClient = MongoClient(mongoUrl)
 db = dbClient.healthyHomeMeals
 
