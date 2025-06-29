@@ -1,0 +1,27 @@
+# client_secret.json
+# client_secret prod.json
+# __pycache__
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment
+venv/
+
+# Ignore secrets and config
+client_secret.json
+client_secret prod.json
+.env
+
+# Ignore editor/project files
+*.log
+.DS_Store
+*.vscode/
+*.idea/
+
+# Ignore database or test files
+*.sqlite3
+*.db
