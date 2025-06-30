@@ -11,6 +11,6 @@ pandas==2.0.0
 tensorflow==2.12.0
 Pillow==9.5.0
 beautifulsoup4==4.12.2
-Werkzeug>=2.2.2
+Werkzeug==2.3.7
 cachecontrol==0.12.11
 gunicorn
