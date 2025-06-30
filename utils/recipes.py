@@ -6,11 +6,10 @@ import pathlib
 import json
 import requests
 from pprint import pprint
-import json
-import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
+# Load ingredients and recipes
 ingredients_file = os.path.join(
     pathlib.Path(__file__).parent.parent, "data/ingredients.csv"
 )
@@ -21,8 +20,15 @@ ingredients_vectors = vectorizer.fit_transform(ingredients["ingredients"])
 recipes_file = os.path.join(pathlib.Path(__file__).parent.parent, "data/recipes.csv")
 recipes = pd.read_csv(recipes_file)
 
-secret_file = os.path.join(pathlib.Path(__file__).parent.parent, "client_secret.json")
-ytApiKey = json.load(open(secret_file))["data"]["youtube"]
+# Helper to load YouTube API key lazily
+def get_yt_api_key():
+    secret_file = os.path.join(pathlib.Path(__file__).parent.parent, "client_secret.json")
+    try:
+        with open(secret_file, "r") as f:
+            return json.load(f)["data"]["youtube"]
+    except Exception as e:
+        print(f"[ERROR] Failed to load YouTube API Key: {e}")
+        return None
 
 
 def suggest_recipes_index(input_ingredients, num_suggestions):
@@ -35,10 +41,9 @@ def suggest_recipes_index(input_ingredients, num_suggestions):
 
 def getDietString(diet):
     try:
-        str = (", ".join([item for item in diet if item != "Vegetarian"]),)
+        return ", ".join([item for item in diet if item != "Vegetarian"])
     except:
-        str = "General"
-    return str
+        return "General"
 
 
 def getRecipes(ingredients, diet):
@@ -66,22 +71,17 @@ def getRecipes(ingredients, diet):
         for i in resData["results"]
     ]
 
-    if len(suggested_recipes_dict) < 3:
-        return suggested_recipes_dict
-
-    return suggested_recipes_dict[:3]
+    return suggested_recipes_dict[:3] if len(suggested_recipes_dict) >= 3 else suggested_recipes_dict
 
 
 def ptTimeToMins(time):
     try:
         t = datetime.strptime(time, "PT%MM")
         td = timedelta(minutes=t.minute)
-        seconds = td.total_seconds()
     except:
         t = datetime.strptime(time, "PT%HH%MM")
         td = timedelta(hours=t.hour, minutes=t.minute)
-        seconds = td.total_seconds()
-    return seconds // 60
+    return td.total_seconds() // 60
 
 
 def getRecipeDetails(slug):
@@ -92,7 +92,7 @@ def getRecipeDetails(slug):
         "".join(soup.find("script", {"type": "application/ld+json"}).contents)
     )
 
-    recipes_dict = {
+    return {
         "name": data["name"],
         "ingredients": data["recipeIngredient"],
         "time": ptTimeToMins(data["totalTime"]),
@@ -109,25 +109,28 @@ def getRecipeDetails(slug):
         "feeds": data["recipeYield"],
     }
 
-    return recipes_dict
-
 
 def getRecipeByIndex(index):
-    recipes_dict = getRecipeDetails(index)
+    yt_api_key = get_yt_api_key()
+    if yt_api_key is None:
+        return {"error": "YouTube API key not found"}
+
+    recipe = getRecipeDetails(index)
 
     res = requests.get(
         "https://www.googleapis.com/youtube/v3/search",
         params={
-            "q": f"{recipes_dict['name']} recipe",
+            "q": f"{recipe['name']} recipe",
             "videoEmbeddable": "true",
             "type": "video",
-            "key": ytApiKey,
+            "key": yt_api_key,
             "maxResults": 1,
             "part": "snippet",
         },
     )
     resData = res.json()
-    recipes_dict["youtube"] = (
+    recipe["youtube"] = (
         "https://www.youtube.com/embed/" + resData["items"][0]["id"]["videoId"]
     )
-    return recipes_dict
+    return recipe
+
