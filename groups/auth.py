@@ -4,7 +4,7 @@ from google_auth_oauthlib.flow import Flow
 import json
 from flask import session, abort, redirect, request
 from google.oauth2 import id_token
-from pip._vendor import cachecontrol
+import cachecontrol
 import requests
 import google.auth.transport.requests
 from utils.loginCheck import login_is_required
