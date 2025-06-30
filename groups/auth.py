@@ -1,9 +1,8 @@
 import os
-import pathlib
-from google_auth_oauthlib.flow import Flow
 import json
 from flask import session, abort, redirect, request
 from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
 import cachecontrol
 import requests
 import google.auth.transport.requests
@@ -14,14 +13,18 @@ def init(app, db):
     dbUsers = db.users
     app.secret_key = "healthyHomeMeals"
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    client_secrets_file = os.path.join(
-        pathlib.Path(__file__).parent.parent, "client_secret.json"
-    )
-    secrets_data = json.load(open(client_secrets_file))
+
+    # Load client secrets from env (Render) or file (local)
+    if os.environ.get("CLIENT_SECRET_JSON"):
+        secrets_data = json.loads(os.environ["CLIENT_SECRET_JSON"])
+    else:
+        with open(os.path.join(os.path.dirname(__file__), "..", "client_secret.json")) as f:
+            secrets_data = json.load(f)
+
     GOOGLE_CLIENT_ID = secrets_data["web"]["client_id"]
 
-    flow = Flow.from_client_secrets_file(
-        client_secrets_file=client_secrets_file,
+    flow = Flow.from_client_config(
+        secrets_data,
         scopes=[
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
@@ -32,10 +35,7 @@ def init(app, db):
 
     @app.route("/signin")
     def login():
-        (
-            authorization_url,
-            state,
-        ) = flow.authorization_url()
+        authorization_url, state = flow.authorization_url()
         session["state"] = state
         return redirect(authorization_url)
 
@@ -43,12 +43,11 @@ def init(app, db):
     def callback():
         flow.fetch_token(authorization_response=request.url)
 
-        if not session["state"] == request.args["state"]:
+        if session.get("state") != request.args.get("state"):
             abort(500)
 
         credentials = flow.credentials
-        request_session = requests.session()
-        cached_session = cachecontrol.CacheControl(request_session)
+        cached_session = cachecontrol.CacheControl(requests.session())
         token_request = google.auth.transport.requests.Request(session=cached_session)
 
         id_info = id_token.verify_oauth2_token(
@@ -84,3 +83,4 @@ def init(app, db):
     @login_is_required
     def status():
         return {}
+
