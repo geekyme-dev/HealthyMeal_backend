@@ -18,7 +18,13 @@ if secret_json and not os.path.exists(secret_file_path):
 
 # ✅ Step 2: Initialize Flask app
 app = Flask("Google Login App")
-CORS(app, supports_credentials=True, expose_headers="Authorization")
+# CORS(app, supports_credentials=True, expose_headers="Authorization")
+CORS(app,
+     origins=["https://healthymeal-frontend.onrender.com"],
+     supports_credentials=True,
+     expose_headers=["Authorization"],
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # ✅ Step 3: Connect to MongoDB using environment variable
 mongoUrl = os.environ.get("MONGO_URI")
