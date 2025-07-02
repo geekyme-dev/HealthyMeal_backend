@@ -39,7 +39,7 @@ def init(app, db):
         session["state"] = state
         return redirect(authorization_url)
 
-       @app.route("/callback")
+    @app.route("/callback")
     def callback():
         try:
             # Re-initialize flow inside the route for thread safety
