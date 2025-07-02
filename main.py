@@ -13,6 +13,11 @@ secrets_data = json.loads(secret_json) if secret_json else {}
 
 # ✅ Step 2: Initialize Flask app
 app = Flask("Google Login App")
+# Configure Flask session (IMPORTANT for authentication)
+app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret-key-for-development")
+app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookies over HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-origin cookies
 CORS(app,
      origins=["https://healthymeal-frontend.onrender.com"],
      supports_credentials=True,
