@@ -39,40 +39,61 @@ def init(app, db):
         session["state"] = state
         return redirect(authorization_url)
 
-    @app.route("/callback")
+       @app.route("/callback")
     def callback():
-        flow.fetch_token(authorization_response=request.url)
+        try:
+            # Re-initialize flow inside the route for thread safety
+            flow = Flow.from_client_config(
+                secrets_data,
+                scopes=[
+                    "https://www.googleapis.com/auth/userinfo.profile",
+                    "https://www.googleapis.com/auth/userinfo.email",
+                    "openid",
+                ],
+                redirect_uri=secrets_data["data"]["redirect_uri"],
+            )
 
-        if session.get("state") != request.args.get("state"):
-            abort(500)
+            flow.fetch_token(authorization_response=request.url)
 
-        credentials = flow.credentials
-        cached_session = cachecontrol.CacheControl(requests.session())
-        token_request = google.auth.transport.requests.Request(session=cached_session)
+            if session.get("state") != request.args.get("state"):
+                abort(400)
 
-        id_info = id_token.verify_oauth2_token(
-            id_token=credentials._id_token,
-            request=token_request,
-            audience=GOOGLE_CLIENT_ID,
-        )
+            credentials = flow.credentials
+            token_request = google.auth.transport.requests.Request()
 
-        session["google_id"] = id_info.get("sub")
-        session["name"] = id_info.get("name")
-        session["fname"] = id_info.get("given_name")
-        session["email"] = id_info.get("email")
+            id_info = id_token.verify_oauth2_token(
+                id_token=credentials._id_token,
+                request=token_request,
+                audience=GOOGLE_CLIENT_ID,
+            )
 
-        dbUsers.update_one(
-            {"email": session["email"]},
-            {
-                "$set": {"email": session["email"]},
-                "$setOnInsert": {
-                    "data": {"ingredients": [], "allergies": [], "dietaryStyle": []}
+            session["google_id"] = id_info.get("sub")
+            session["name"] = id_info.get("name")
+            session["fname"] = id_info.get("given_name")
+            session["email"] = id_info.get("email")
+
+            dbUsers.update_one(
+                {"email": session["email"]},
+                {
+                    "$set": {"email": session["email"]},
+                    "$setOnInsert": {
+                        "data": {
+                            "ingredients": [],
+                            "allergies": [],
+                            "dietaryStyle": []
+                        }
+                    },
                 },
-            },
-            upsert=True,
-        )
+                upsert=True,
+            )
 
-        return redirect(secrets_data["data"]["home"])
+            return redirect(secrets_data["data"]["home"])
+
+        except Exception as e:
+            # You can log this or print to logs for Render debugging
+            print("Callback error:", e)
+            return "Internal Server Error", 500
+
 
     @app.route("/signout")
     def logout():
