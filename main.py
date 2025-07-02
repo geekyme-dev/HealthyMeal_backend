@@ -22,6 +22,7 @@ CORS(app,
 
 # ✅ Step 3: Connect to MongoDB
 mongoUrl = os.environ.get("MONGODB_URI")
+print("🧪 MONGODB_URI loaded:", mongoUrl)  # Debug line
 dbClient = MongoClient(mongoUrl)
 db = dbClient.healthyHomeMeals
 
