@@ -6,19 +6,13 @@ import groups.recipes
 from pymongo import MongoClient
 import json
 import os
-import pathlib
 
-# ✅ Step 1: Write client_secret.json from environment variable
+# ✅ Step 1: Load client secrets
 secret_json = os.environ.get("CLIENT_SECRET_JSON")
-secret_file_path = os.path.join(pathlib.Path(__file__).parent, "client_secret.json")
-
-if secret_json and not os.path.exists(secret_file_path):
-    with open(secret_file_path, "w") as f:
-        f.write(secret_json)
+secrets_data = json.loads(secret_json) if secret_json else {}
 
 # ✅ Step 2: Initialize Flask app
 app = Flask("Google Login App")
-# CORS(app, supports_credentials=True, expose_headers="Authorization")
 CORS(app,
      origins=["https://healthymeal-frontend.onrender.com"],
      supports_credentials=True,
@@ -26,8 +20,8 @@ CORS(app,
      allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# ✅ Step 3: Connect to MongoDB using environment variable
-mongoUrl = os.environ.get("MONGO_URI")
+# ✅ Step 3: Connect to MongoDB
+mongoUrl = os.environ.get("MONGODB_URI")
 dbClient = MongoClient(mongoUrl)
 db = dbClient.healthyHomeMeals
 
@@ -41,4 +35,5 @@ if __name__ == "__main__":
     from os import environ
     port = int(environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
